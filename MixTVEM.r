@@ -15,6 +15,7 @@ TVEMMixNormal <- function( dep,   # The dependent variable as a vector, one
                   # ones representing an intercept.
            time,      # Assessment time as a vector
    # These arguments have default values, given after the equal sign for each:
+                  # autocorrelation parameter will be treated as zero.
            convergenceCriterion=1e-6,  # Convergence criterion for the
                   # maximum absolute deviation of parameter
                   # estimates between successive
@@ -59,7 +60,7 @@ TVEMMixNormal <- function( dep,   # The dependent variable as a vector, one
            xcov=NULL    # Optional matrix of covariates assumed
                   # to have time-invariant effects.
            ) {
-
+           useAIC=FALSE, # If true, uses AIC for tuning instead of BIC.
   ##################################################################
   # MixTVEM macro Version 1.1
   # By John DZIAK, Xianming TAN, and Runze LI
@@ -340,11 +341,19 @@ TVEMMixNormal <- function( dep,   # The dependent variable as a vector, one
                         (t(X[these,,drop=FALSE])%*%(invCovMats[[i]]/sigsq.total[k])))))));
            }
          }
-         enp <- sum(enpByClass) +
-            ncol(S)*(numClasses-1)+
-             numClasses +2;
-         np <- ncol(X)*numClasses + ncol(S)*(numClasses-1)+
-            numClasses  +2;
+         if (assumeIndependence==TRUE) { # this is a rather sloppy call to a global variable;
+	         enp <- sum(enpByClass) +
+	            ncol(S)*(numClasses-1)+
+	             numClasses ;
+	         np <- ncol(X)*numClasses + ncol(S)*(numClasses-1)+
+	            numClasses  ;
+         } else {
+	         enp <- sum(enpByClass) +
+	            ncol(S)*(numClasses-1)+
+	             numClasses +2;
+	         np <- ncol(X)*numClasses + ncol(S)*(numClasses-1)+
+	            numClasses  +2;
+         }
          converged <- maxAbsDev<=convergenceCriterion;
          weightedRSS <- sum(postProbsBySub*rssBySubjectAndClass);
          return(list(aic=-2*logLik+2*enp,
@@ -918,7 +927,11 @@ TVEMMixNormal <- function( dep,   # The dependent variable as a vector, one
                 time=time,
                 X=designMatrix,
                 Y=dep);
-    estimates <- estimateRho(thisFit, time);
+    if (assumeIndependence==TRUE) {
+      estimates <- list(rho=0,proportionNugget=1);
+    } else {
+      estimates <- estimateRho(thisFit, time);
+    }
     estimatedProportionNugget <- estimates$proportionNugget;
     estimatedRho <- estimates$rho;
     thisFit <- MixTVEMFitInner(convergenceCriterion=convergenceCriterion,
@@ -963,23 +976,27 @@ TVEMMixNormal <- function( dep,   # The dependent variable as a vector, one
                     time=time,
                     X=designMatrix,
                     Y=dep);
-       return(thisFit$bic);
+       if (useAIC==TRUE) { # Rather sloppy call to a global parameter;
+         return(thisFit$aic);
+       } else {
+         return(thisFit$bic);
+       }
      }
      # Find the right order of magnitude;
      lambdasSearch1 <- 10^(seq(-3,floor(log10(numTotal))))*sd(dep);
      resultsSearch1 <- sapply(lambdasSearch1, f);
      bestLambda1 <- lambdasSearch1[which.min(resultsSearch1)];
-     #print(cbind(lambdasSearch1,resultsSearch1));
+     print(cbind(lambdasSearch1,resultsSearch1));
      # Find the right approximate value;
      lambdasSearch2 <- (10^seq(-0.6,0.6,length=5))*bestLambda1;
      resultsSearch2 <- sapply(lambdasSearch2, f);
      bestLambda2 <- lambdasSearch2[which.min(resultsSearch2)];
-     #print(cbind(lambdasSearch1,resultsSearch1));
+     print(cbind(lambdasSearch1,resultsSearch1));
      # Zoom in closer;
      lambdasSearch3 <- (10^seq(-0.2,0.2,length=5))*bestLambda2;
      resultsSearch3 <- sapply(lambdasSearch3, f);
      bestLambda3 <- lambdasSearch3[which.min(resultsSearch3)];
-       #print(cbind(lambdasSearch1,resultsSearch1));
+     print(cbind(lambdasSearch1,resultsSearch1));
      # Good enough;
      lambda <- bestLambda3;
 ## Finally do the analysis;
