@@ -15,6 +15,7 @@ TVEMMixNormal <- function( dep,   # The dependent variable as a vector, one
                   # ones representing an intercept.
            time,      # Assessment time as a vector
    # These arguments have default values, given after the equal sign for each:
+           assumeIndependence=FALSE, # If this is true then the
                   # autocorrelation parameter will be treated as zero.
            convergenceCriterion=1e-6,  # Convergence criterion for the
                   # maximum absolute deviation of parameter
@@ -57,10 +58,10 @@ TVEMMixNormal <- function( dep,   # The dependent variable as a vector, one
                   # number of rows as tcov, but should be
                   # identical on all observations within the
                   # same person.
+           useAIC=FALSE, # If true, uses AIC for tuning instead of BIC.
            xcov=NULL    # Optional matrix of covariates assumed
                   # to have time-invariant effects.
            ) {
-           useAIC=FALSE, # If true, uses AIC for tuning instead of BIC.
   ##################################################################
   # MixTVEM macro Version 1.1
   # By John DZIAK, Xianming TAN, and Runze LI
